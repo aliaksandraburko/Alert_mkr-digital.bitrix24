@@ -8,6 +8,8 @@
 // @grant        none
 // ==/UserScript==
 
+
+
 (function() {
     'use strict';
 
@@ -15,6 +17,7 @@
     function clickAndAddComment(resultText) {
         // Ищем элемент с классом feed-com-add-link
         let commentLink = document.querySelector('.feed-com-add-link');
+        console.log('commentLink найден:', commentLink); // Отладочный вывод
 
         if (commentLink) {
             // Имитируем клик по элементу
@@ -22,10 +25,19 @@
 
             // Добавляем текст в текстовое поле комментария
             setTimeout(function() {
-                // Ищем поле для комментария по вашему классу
-                let commentField = document.querySelector('.bx-core.bx-mac.bx-no-touch.bx-retina.bx-chrome');
+                // Ищем поле для комментария по атрибуту contenteditable
+                let commentField = document.querySelector('[contenteditable="true"]');
+
+                // Если поле не найдено по атрибуту, ищем по классу
+                if (!commentField) {
+                    commentField = document.querySelector('.bx-core.bx-mac.bx-no-touch.bx-no-retina.bx-chrome');
+                }
+
+                console.log('commentField найден:', commentField); // Отладочный вывод
+
                 if (commentField) {
-                    commentField.innerText = resultText;  // Вставляем текст в поле комментария
+                    // Вставляем текст в поле комментария
+                    commentField.innerText = resultText;
                 } else {
                     alert('Поле для комментариев не найдено!');
                 }
@@ -52,21 +64,21 @@
             });
     }
 
-  // Создаем новую кнопку
-                let newButton = document.createElement('button');
-                newButton.innerHTML = 'Промежуточный отчет';
-                newButton.classList.add('new-custom-button'); // Добавляем класс для отслеживания
+    // Создаем новую кнопку
+    let newButton = document.createElement('button');
+    newButton.innerHTML = 'Промежуточный отчет';
+    newButton.classList.add('new-custom-button'); // Добавляем класс для отслеживания
 
-  // Копируем стили с кнопки "Приостановить"
-                newButton.style.backgroundColor = 'red';  // Красный цвет
-                newButton.style.color = 'white';         // Цвет текста
-                newButton.style.border = 'none';         // Без границ
-                newButton.style.padding = '10px 20px';   // Отступы
-                newButton.style.fontSize = '16px';       // Размер шрифта
-                newButton.style.cursor = 'pointer';      // Указатель при наведении
-                newButton.style.marginTop = '10px';      // Отступ сверху
-                newButton.style.display = 'inline-block'; // Делаем кнопку блочной
-                newButton.style.borderRadius = '4px';    // Закругление углов
+    // Копируем стили с кнопки "Приостановить"
+    newButton.style.backgroundColor = 'red';  // Красный цвет
+    newButton.style.color = 'white';         // Цвет текста
+    newButton.style.border = 'none';         // Без границ
+    newButton.style.padding = '10px 20px';   // Отступы
+    newButton.style.fontSize = '16px';       // Размер шрифта
+    newButton.style.cursor = 'pointer';      // Указатель при наведении
+    newButton.style.marginTop = '10px';      // Отступ сверху
+    newButton.style.display = 'inline-block'; // Делаем кнопку блочной
+    newButton.style.borderRadius = '4px';    // Закругление углов
 
     // Добавляем обработчик клика на кнопку
     newButton.addEventListener('click', function() {
