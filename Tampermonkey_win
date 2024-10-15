@@ -49,7 +49,7 @@
     // Функция для получения данных из Google Apps Script
     function fetchDataFromScript() {
         // Вставляем URL вашего Google Apps Script с параметром e
-        var scriptUrl = 'scriptUrl?e=' + encodeURIComponent(window.location.href);
+        var scriptUrl = 'https://script.google.com/macros/s/AKfycbzM2-PeDIjks_HXxjQfaApsv0u6Cmv7QwLkQ8h_NYdqsj5GljEa-Oj7dFInZ37RJPvL/exec?e=' + encodeURIComponent(window.location.href);
 
         // Выполняем fetch-запрос
         fetch(scriptUrl)
