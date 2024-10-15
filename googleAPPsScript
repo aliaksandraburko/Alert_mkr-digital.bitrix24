@@ -1,0 +1,95 @@
+function doGet(e) {
+  // Проверяем, был ли передан параметр URL (e)
+  if (!e.parameter.e) {
+    return ContentService.createTextOutput('Не был передан параметр URL').setMimeType(ContentService.MimeType.TEXT);
+  }
+  
+  // Получаем параметр URL (e)
+  var url = e.parameter.e.trim();  // Убираем лишние пробелы
+  
+  // Извлекаем номер задачи из URL (после "/view/")
+  var taskNumberMatch = url.match(/\/view\/(\d+)/);
+  if (!taskNumberMatch || taskNumberMatch.length < 2) {
+    return ContentService.createTextOutput('Не удалось извлечь номер задачи из URL').setMimeType(ContentService.MimeType.TEXT);
+  }
+  
+  var taskNumber = taskNumberMatch[1];  // Извлекаем номер задачи
+  
+  // Открываем таблицу и лист "Yandex"
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName('Yandex');  // Указываем конкретный лист
+
+  // Проверяем, что лист найден
+  if (!sheet) {
+    return ContentService.createTextOutput('Лист с именем Yandex не найден').setMimeType(ContentService.MimeType.TEXT);
+  }
+  
+  // Получаем все данные из таблицы
+  var dataRange = sheet.getDataRange();
+  var values = dataRange.getValues();
+  
+  // Инициализируем переменные для хранения данных
+  var clicks = 'Не найдено';  // Для количества переходов
+  var budget = 'Не найдено';  // Для расхода бюджета (столбец O)
+  var reportDays = 'Не найдено';  // Для промежуточного отчета (столбец Q)
+  var remainingDays = 'Не найдено';  // Для остатка бюджета (столбец R)
+
+  // Проходим по строкам в поиске совпадения по номеру задачи
+  for (var i = 0; i < values.length; i++) {
+    var urlFromSheet = values[i][5] ? values[i][5].trim() : '';  // URL из столбца F
+    var taskNumberFromSheetMatch = urlFromSheet.match(/\/view\/(\d+)/);  // Ищем номер задачи в URL из таблицы
+    var taskNumberFromSheet = taskNumberFromSheetMatch ? taskNumberFromSheetMatch[1] : null;
+
+    var clicksFromSheet = values[i][13];  // Значение кликов из столбца N (индекс 13)
+    var budgetFromSheet = values[i][14];  // Значение бюджета из столбца O (индекс 14)
+    var reportDaysFromSheet = values[i][16];  // Данные отчета из столбца Q (индекс 16)
+    var remainingDaysFromSheet = values[i][17];  // Остаток бюджета из столбца R (индекс 17)
+
+    // Проверяем совпадение по номеру задачи
+    if (taskNumberFromSheet === taskNumber) {
+      // Обработка данных
+      clicks = clicksFromSheet;
+      
+      // Убираем символ (!) из бюджета
+      budget = budgetFromSheet ? budgetFromSheet.replace(/!|\s+/g, '') : 'Пустое значение';
+
+      // Убираем символ ↑ из отчета
+      reportDays = reportDaysFromSheet ? reportDaysFromSheet.replace(/↑|\s+/g, '') : 'Пустое значение';
+      
+      // Убираем символ ↓ из остатка бюджета
+      remainingDays = remainingDaysFromSheet ? remainingDaysFromSheet.replace(/↓|\s+/g, '') : 'Пустое значение';
+      break;  // Прерываем цикл, если найдено совпадение
+    }
+  }
+
+  // Приводим значения к числовому формату
+  var clicksNum = parseFloat(clicks);
+  var budgetNum = parseFloat(budget);
+  var reportDaysNum = parseFloat(reportDays);
+  var remainingDaysNum = parseFloat(remainingDays);
+
+  // Проверяем, что все необходимые данные являются числовыми
+  var avgCostPerClick = (isNaN(budgetNum) || isNaN(clicksNum) || clicksNum === 0) ? 'Не удалось вычислить' : (budgetNum / clicksNum).toFixed(2) + ' BYN';
+  var avgDailySpend = (isNaN(budgetNum) || isNaN(reportDaysNum) || reportDaysNum === 0) ? 'Не удалось вычислить' : (budgetNum / reportDaysNum).toFixed(2) + ' BYN';
+
+  // Функция для правильного склонения слова "день"
+  function dayTitle(number) {
+    if (number > 10 && [11, 12, 13, 14].includes(number % 100)) return 'дней';
+    var last_num = number % 10;
+    if (last_num === 1) return 'день';
+    if ([2, 3, 4].includes(last_num)) return 'дня';
+    return 'дней';
+  }
+
+  // Формируем результат с дополнительными строками
+  var result = `Промежуточный отчёт за ${reportDays} ${dayTitle(reportDaysNum)}\n\n` +  // Дополнительная пустая строка
+               `Расход бюджета: ${budget}\nКоличество переходов: ${clicks}\n` +
+               `Средняя стоимость перехода: ${avgCostPerClick}\n` +
+               `Средний дневной расход: ${avgDailySpend}\n\n` +  // Дополнительная пустая строка
+               `По конверсиям:\n\n` +  // Дополнительная пустая строка
+               `Продолжаем работать над оптимизацией рекламных кампаний.\n\n` +  // Дополнительная пустая строка
+               `Остаток бюджета ещё ориентировочно на ${remainingDays} ${dayTitle(remainingDaysNum)}.`;
+  
+  // Возвращаем результат
+  return ContentService.createTextOutput(result).setMimeType(ContentService.MimeType.TEXT);
+}
