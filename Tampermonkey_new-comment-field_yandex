@@ -1,0 +1,78 @@
+// ==UserScript==
+// @name         Вставка данных в комментарии с Google Apps Script
+// @namespace    http://tampermonkey.net/
+// @version      0.3
+// @description  Клик по элементу и добавление текста в новое поле комментариев с данными из Google Apps Script
+// @author       Вы
+// @match        https://mkr-digital.bitrix24.by/company/personal/user/*/tasks/task/view/*
+// @grant        none
+// ==/UserScript==
+
+(function() {
+    'use strict';
+
+    // Функция для создания нового поля для комментария и вставки текста
+    function createNewCommentField(resultText) {
+        // Создаем новый элемент div для комментария
+        let newCommentDiv = document.createElement('div');
+        newCommentDiv.classList.add('new-comment-field');
+        newCommentDiv.style.backgroundColor = '#f0f0f0';  // Светлый фон для визуального отделения
+        newCommentDiv.style.padding = '10px';
+        newCommentDiv.style.marginTop = '10px';
+        newCommentDiv.style.border = '1px solid #ccc';
+        newCommentDiv.style.borderRadius = '4px';
+
+        // Добавляем текст внутрь нового элемента
+        newCommentDiv.innerText = resultText;
+
+        // Вставляем новый элемент на страницу (например, в конец body или другой контейнер)
+        let commentSection = document.querySelector('.task-comments'); // Или выберите контейнер, куда вставить
+        if (commentSection) {
+            commentSection.appendChild(newCommentDiv);  // Вставляем новый комментарий в конец секции комментариев
+        } else {
+            // Если секция комментариев не найдена, добавляем в body
+            document.body.appendChild(newCommentDiv);
+        }
+    }
+
+    // Функция для получения данных из Google Apps Script
+    function fetchDataFromScript() {
+        // Вставляем URL вашего Google Apps Script с параметром e
+        var scriptUrl = 'https://script.google.com/macros/s/AKfycbwtUyWpSeBxjPeyIJIEf5XxoSBESLcbGvwBBZqOmOodVc90Fuf-QHfFCoh0E-TBUm-E/exec?e=' + encodeURIComponent(window.location.href);
+
+        // Выполняем fetch-запрос
+        fetch(scriptUrl)
+            .then(response => response.text())
+            .then(data => {
+                // Вставляем полученные данные в новое поле комментария
+                createNewCommentField(data);
+            })
+            .catch(error => {
+                console.error('Ошибка при запросе к Google Apps Script:', error);
+            });
+    }
+
+    // Создаем новую кнопку
+    let newButton = document.createElement('button');
+    newButton.innerHTML = 'Промежуточный отчет';
+    newButton.classList.add('new-custom-button'); // Добавляем класс для отслеживания
+
+    // Копируем стили с кнопки "Приостановить"
+    newButton.style.backgroundColor = 'red';  // Красный цвет
+    newButton.style.color = 'white';         // Цвет текста
+    newButton.style.border = 'none';         // Без границ
+    newButton.style.padding = '10px 20px';   // Отступы
+    newButton.style.fontSize = '16px';       // Размер шрифта
+    newButton.style.cursor = 'pointer';      // Указатель при наведении
+    newButton.style.marginTop = '10px';      // Отступ сверху
+    newButton.style.display = 'inline-block'; // Делаем кнопку блочной
+    newButton.style.borderRadius = '4px';    // Закругление углов
+
+    // Добавляем обработчик клика на кнопку
+    newButton.addEventListener('click', function() {
+        fetchDataFromScript();  // Вызываем функцию получения данных и вставки в новое поле комментария
+    });
+
+    // Добавляем кнопку на страницу
+    document.body.appendChild(newButton);
+})();
