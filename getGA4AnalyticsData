@@ -1,0 +1,136 @@
+function getGA4AnalyticsData() {
+  // Открываем таблицу и нужный лист
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Yandex');
+  
+  // Начинаем с 2-й строки (чтобы пропустить заголовок)
+  var lastRow = sheet.getLastRow(); // Получаем последнюю строку в листе
+
+  // Перебираем все строки, начиная со 2-й
+  for (var row = 2; row <= lastRow; row++) {
+    // Получаем ссылку из столбца AF
+    var analyticsUrl = sheet.getRange(row, 32).getValue(); // Столбец AF - 32-й
+
+    // Извлекаем Property ID из ссылки
+    var propertyId = extractPropertyId(analyticsUrl);
+    
+    // Проверяем, что Property ID был извлечен
+    if (!propertyId) {
+      Logger.log('Property ID не найден в строке ' + row + ', столбец AF');
+      continue; // Переходим к следующей строке, если Property ID не найден
+    }
+
+    // Получаем startDate из столбца I (9-й столбец)
+    var startDateRaw = sheet.getRange(row, 9).getValue();
+    
+    // Преобразуем startDate в формат YYYY-MM-DD
+    var startDate = Utilities.formatDate(new Date(startDateRaw), Session.getScriptTimeZone(), 'yyyy-MM-dd');
+    
+    // Получаем сегодняшнюю дату для endDate
+    var endDate = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd');
+
+    // Выполняем запросы для каждого события и записываем данные в соответствующие столбцы
+    var events = [
+      { eventName: 'call_phones', column: 35 },  // Столбец AI
+      { eventName: 'клик по номеру телефона', column: 36 },  // Столбец AJ
+      { eventName: 'add_to_cart', column: 37 },  // Столбец AK
+      { eventName: 'cs_prise_list', column: 38 },  // Столбец AL
+      { eventName: 'finish_button_click', column: 39 },  // Столбец AM
+      { eventName: 'form_submit', column: 40 },  // Столбец AN
+      { eventName: 'добавление в корзину', column: 41 },  // Столбец AO
+      { eventName: 'скачивание прайс-листа', column: 42 },  // Столбец AP
+      { eventName: 'оформленный заказ', column: 43 },  // Столбец AQ
+      { eventName: 'отправленные формы', column: 44 },  // Столбец AR
+      { eventName: 'go_to_contact_page', column: 45 },  // Столбец AS
+      { eventName: 'Запрос обратного звонка', column: 46 },  // Столбец AT
+      { eventName: 'hover_phones', column: 47 },  // Столбец AU
+      { eventName: 'view_contacts', column: 48 },  // Столбец AV
+      { eventName: 'Переход в мессенджер', column: 49 },  // Столбец AW
+      { eventName: 'Переход в соц сеть', column: 50 },  // Столбец AX
+      { eventName: 'Отправка формы ОС', column: 51 },  // Столбец AY
+      { eventName: 'Instagram', column: 52 }  // Столбец AZ
+    ];
+
+    // Для каждого события выполняем запрос и записываем результат
+    events.forEach(function(event) {
+      fetchDataAndWriteToSheet(propertyId, startDate, endDate, event.eventName, row, event.column, sheet);
+    });
+
+    // Записываем текущую дату и время в столбец BC (55-й столбец)
+    var currentDate = new Date();
+    var formattedDate = Utilities.formatDate(currentDate, Session.getScriptTimeZone(), 'yyyy-MM-dd HH:mm:ss');
+    Logger.log('Дата и время для строки ' + row + ': ' + formattedDate); // Логирование даты и времени
+    sheet.getRange(row, 55).setValue(formattedDate); // Записываем дату и время
+  }
+}
+
+// Функция для запроса данных и записи в Google Таблицы
+function fetchDataAndWriteToSheet(propertyId, startDate, endDate, eventName, row, column, sheet) {
+  // Получаем токен OAuth для аутентификации запроса
+  var token = ScriptApp.getOAuthToken();
+
+  // Определяем URL запроса к Google Analytics Data API
+  var url = 'https://analyticsdata.googleapis.com/v1beta/properties/' + propertyId + ':runReport';
+
+  // Создаем тело запроса
+  var requestData = {
+    'dateRanges': [{'startDate': startDate, 'endDate': endDate}], // Используем startDate и сегодняшнюю дату как endDate
+    'dimensions': [{'name': 'sessionSourceMedium'}], // Источник/средство (source/medium)
+    'metrics': [{'name': 'keyEvents'}], // Используем метрику для ключевых событий "keyEvents"
+    'dimensionFilter': {
+      'andGroup': {
+        'expressions': [
+          {
+            'filter': {
+              'fieldName': 'sessionSourceMedium', // Фильтр по источнику/средству
+              'stringFilter': {'value': 'yandex_mkr_ads / cpc'} // Условие: источник - yandex_mkr_ads / cpc
+            }
+          },
+          {
+            'filter': {
+              'fieldName': 'eventName', // Фильтр по конкретному событию
+              'stringFilter': {'value': eventName}
+            }
+          }
+        ]
+      }
+    },
+    'limit': 10 // Лимит на количество строк
+  };
+
+  // Опции для HTTP-запроса
+  var options = {
+    'method': 'POST',
+    'contentType': 'application/json',
+    'headers': {
+      'Authorization': 'Bearer ' + token // Используем OAuth токен
+    },
+    'payload': JSON.stringify(requestData)
+  };
+
+  // Выполняем запрос к Google Analytics Data API
+  try {
+    var response = UrlFetchApp.fetch(url, options);
+    var json = JSON.parse(response.getContentText());
+
+    // Очищаем ячейку в столбце перед записью
+    sheet.getRange(row, column).clearContent();
+
+    // Проверяем наличие данных и записываем их в соответствующую ячейку
+    if (json.rows && json.rows.length > 0) {
+      var eventValue = json.rows[0].metricValues[0].value; // Получаем значение для ключевых событий
+      sheet.getRange(row, column).setValue(eventValue); // Записываем в нужную колонку
+    } else {
+      sheet.getRange(row, column).setValue('0'); // Если данных нет, пишем 0
+    }
+
+  } catch (error) {
+    Logger.log('Ошибка выполнения запроса для строки ' + row + ': ' + error.message);
+  }
+}
+
+// Функция для извлечения Property ID из ссылки
+function extractPropertyId(analyticsUrl) {
+  var regex = /#\/p(\d+)\//;
+  var match = analyticsUrl.match(regex);
+  return match ? match[1] : null;
+}
