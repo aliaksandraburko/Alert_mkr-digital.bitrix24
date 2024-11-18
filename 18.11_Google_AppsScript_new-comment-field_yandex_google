@@ -1,0 +1,118 @@
+// ==UserScript==
+// @name         Вставка данных в комментарии с Google Apps Script_new-comment-field_yandex_google
+// @namespace    http://tampermonkey.net/
+// @version      0.3
+// @description  Клик по элементу и добавление текста в новое поле комментариев с данными из Google Apps Script
+// @author       Вы
+// @match        https://mkr-digital.bitrix24.by/company/personal/user/*/tasks/task/view/*
+// @grant        none
+// ==/UserScript==
+
+(function() {
+    'use strict';
+
+    // Функция для создания нового поля для комментария и вставки текста
+    function createNewCommentField(resultText) {
+        // Создаем новый элемент div для комментария
+        let newCommentDiv = document.createElement('div');
+        newCommentDiv.classList.add('new-comment-field');
+        newCommentDiv.style.backgroundColor = '#f0f0f0';  // Светлый фон для визуального отделения
+        newCommentDiv.style.padding = '10px';
+        newCommentDiv.style.marginTop = '10px';
+        newCommentDiv.style.border = '1px solid #ccc';
+        newCommentDiv.style.borderRadius = '4px';
+
+        // Добавляем текст внутрь нового элемента
+        newCommentDiv.innerText = resultText;
+
+        // Вставляем новый элемент на страницу (например, в конец body или другой контейнер)
+        let commentSection = document.querySelector('.task-comments'); // Или выберите контейнер, куда вставить
+        if (commentSection) {
+            commentSection.appendChild(newCommentDiv);  // Вставляем новый комментарий в конец секции комментариев
+        } else {
+            // Если секция комментариев не найдена, добавляем в body
+            document.body.appendChild(newCommentDiv);
+        }
+    }
+
+    // Функция для получения данных из Google Apps Script для Яндекса
+    function fetchDataFromYandexScript() {
+        // Вставляем URL вашего Google Apps Script для Яндекса с параметром e
+        var scriptUrl = 'https://script.google.com/macros/s/AKfycbyBabgm1_bbQ1tPm9Wm-aPS8wpDHFMgexjcVZjuaCeOXs1n1fmfBu4W6olraGBIJUWM/exec?e=' + encodeURIComponent(window.location.href);
+
+        // Выполняем fetch-запрос
+        fetch(scriptUrl)
+            .then(response => response.text())
+            .then(data => {
+                // Вставляем полученные данные в новое поле комментария
+                createNewCommentField(data);
+            })
+            .catch(error => {
+                console.error('Ошибка при запросе к Google Apps Script:', error);
+            });
+    }
+
+    // Функция для получения данных из Google Apps Script для второго скрипта
+    function fetchDataFromOtherScript() {
+        // Вставляем URL вашего второго Google Apps Script с параметром e
+        var scriptUrl = 'https://script.google.com/macros/s/AKfycbya_BVkJ2bQMbSzPjOBmKA67QXeG72tke_Z0rlEXQ8_6bw8kq5dK-H1B_CxH7x6oMZX9Q/exec?e=' + encodeURIComponent(window.location.href);
+
+        // Выполняем fetch-запрос
+        fetch(scriptUrl)
+            .then(response => response.text())
+            .then(data => {
+                // Вставляем полученные данные в новое поле комментария
+                createNewCommentField(data);
+            })
+            .catch(error => {
+                console.error('Ошибка при запросе к Google Apps Script:', error);
+            });
+    }
+
+    // Создаем первую кнопку для Яндекса
+    let yandexButton = document.createElement('button');
+    yandexButton.innerHTML = 'Промежуточный отчет (Яндекс)';
+    yandexButton.classList.add('new-custom-button'); // Добавляем класс для отслеживания
+
+    // Копируем стили с кнопки "Приостановить"
+    yandexButton.style.backgroundColor = 'pink';  // Розовый цвет
+    yandexButton.style.color = 'white';         // Цвет текста
+    yandexButton.style.border = 'none';         // Без границ
+    yandexButton.style.padding = '10px 20px';   // Отступы
+    yandexButton.style.fontSize = '16px';       // Размер шрифта
+    yandexButton.style.cursor = 'pointer';      // Указатель при наведении
+    yandexButton.style.marginTop = '10px';      // Отступ сверху
+    yandexButton.style.display = 'inline-block'; // Делаем кнопку блочной
+    yandexButton.style.borderRadius = '4px';    // Закругление углов
+    yandexButton.style.marginRight = '10px';    // Отступ справа
+
+    // Добавляем обработчик клика на кнопку Яндекс
+    yandexButton.addEventListener('click', function() {
+        fetchDataFromYandexScript();  // Вызываем функцию получения данных для Яндекса
+    });
+
+    // Создаем вторую кнопку для другого скрипта
+    let otherButton = document.createElement('button');
+    otherButton.innerHTML = 'Промежуточный отчет (Google)';
+    otherButton.classList.add('new-custom-button'); // Добавляем класс для отслеживания
+
+    // Копируем стили с первой кнопки, меняем цвет
+    otherButton.style.backgroundColor = 'grey';  // Серый цвет для второй кнопки
+    otherButton.style.color = 'white';         // Цвет текста
+    otherButton.style.border = 'none';         // Без границ
+    otherButton.style.padding = '10px 20px';   // Отступы
+    otherButton.style.fontSize = '16px';       // Размер шрифта
+    otherButton.style.cursor = 'pointer';      // Указатель при наведении
+    otherButton.style.marginTop = '10px';      // Отступ сверху
+    otherButton.style.display = 'inline-block'; // Делаем кнопку блочной
+    otherButton.style.borderRadius = '4px';    // Закругление углов
+
+    // Добавляем обработчик клика на вторую кнопку
+    otherButton.addEventListener('click', function() {
+        fetchDataFromOtherScript();  // Вызываем функцию получения данных для другого скрипта
+    });
+
+    // Добавляем обе кнопки на страницу
+    document.body.appendChild(yandexButton); // Добавляем первую кнопку
+    document.body.appendChild(otherButton);  // Добавляем вторую кнопку рядом
+})();
